@@ -2,7 +2,7 @@
 
 這是一個示範專案，用於展示如何使用 GitHub Actions 建立 Pull Request 的 CI (持續整合) 流程。
 
-## CI 工作流程說明
+## CI 工作流程說明 
 
 本專案的 `.github/workflows/demo-prci.yml` 配置了以下自動化流程：
 
