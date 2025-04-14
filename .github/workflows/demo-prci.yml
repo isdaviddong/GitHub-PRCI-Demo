@@ -28,14 +28,14 @@ jobs:
       - name: Get PR Diff # 取得 Pull Request 的程式碼差異
         id: diff # 設定此步驟的 ID，供後續步驟參考
         run: |
-          echo "Getting diff for PR #${{ github.event.pull_request.number }}" # 顯示目前處理的 PR 編號
-          git fetch origin main # 取得 main 分支的最新變更
-          git diff origin/main > diff.txt # 比較 main 分支與 PR 的差異，並將結果輸出到 diff.txt
+          echo "Getting diff for PR #${{ github.event.pull_request.number }}" 
+          git fetch origin main 
+          git diff origin/main > diff.txt  
       
       - name: Call OpenAI for Review # 呼叫 OpenAI API 進行程式碼審查
         id: openai_review # 設定此步驟的 ID，供後續步驟參考
         run: |
-          echo "Calling OpenAI API to analyze code diff..." # 顯示呼叫 OpenAI API 的訊息
+          echo "Calling OpenAI API to analyze code diff..."  
       
           DIFF_CONTENT=$(cat diff.txt | head -c 6000 | jq -Rs .) # 讀取 diff.txt 的內容，並限制字元數
       
@@ -80,7 +80,7 @@ jobs:
             🤖 **AI 程式碼審查意見**
             以下是 OpenAI GPT-4o 對此 PR 的分析與建議：
 
-            ${{ steps.openai_review.outputs.review }} # 插入 OpenAI 的審查意見
+            ${{ steps.openai_review.outputs.review }}  
 
       - name: Run tests # 執行單元測試
         run: dotnet test --no-build --configuration Release --logger "trx" # 執行測試，使用 Release 組態，並產生測試報告
