@@ -62,9 +62,8 @@ jobs:
       
           echo "$RESPONSE" | jq -r '.choices[0].message.content' > review.txt
       
-          echo "review<<EOF" >> $GITHUB_OUTPUT
-          cat review.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          REVIEW_CONTENT=$(cat review.txt | tr '\n' ' ' | sed 's/"/\\"/g')
+          echo "review=$REVIEW_CONTENT" >> $GITHUB_OUTPUT
 
       - name: Comment on PR
         uses: peter-evans/create-or-update-comment@v3
@@ -76,7 +75,7 @@ jobs:
             
             以下是 OpenAI GPT-4 對此 PR 的分析與建議：
 
-            ${{ env.REVIEW_COMMENT }}
+            ${{ steps.openai_review.outputs.review }}
 
       - name: Run tests
         run: dotnet test --no-build --configuration Release --logger "trx"
