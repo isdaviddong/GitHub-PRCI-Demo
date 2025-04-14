@@ -65,8 +65,7 @@ jobs:
           echo "$RESPONSE" | jq .
       
           echo "$RESPONSE" | jq -r '.choices[0].message.content' > review.txt
-          REVIEW_CONTENT=$(cat review.txt | tr '\n' ' ' | sed 's/"/\\"/g')
-          REVIEW_CONTENT=$(echo -e "$REVIEW_CONTENT")  # 將 \n 還原為換行
+          REVIEW_CONTENT=$(cat review.txt | tr '\n' ' ' | sed 's/"/\\"/g' | perl -pe 's/\\n/\n/g')
           echo "review=$REVIEW_CONTENT" >> $GITHUB_OUTPUT
 
 
