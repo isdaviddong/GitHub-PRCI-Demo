@@ -25,6 +25,13 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
         
+      - name: Get PR Diff
+        id: diff
+        run: |
+          echo "Getting diff for PR #${{ github.event.pull_request.number }}"
+          git fetch origin main
+          git diff origin/main > diff.txt
+
 
 
       - name: Run tests
