@@ -27,6 +27,7 @@ public class IndexModel : PageModel
             int para1=12;
 
             para1=para1/0;
+            
             Height=(int)Height / 100; // Convert height from cm to m
             BMI = Weight / (Height * Height);
             //todo: 尚未完成
