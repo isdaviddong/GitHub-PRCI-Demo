@@ -59,7 +59,8 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
             -d "$REQUEST_DATA")
-      
+
+          echo "$RESPONSE"
           echo "$RESPONSE" | jq -r '.choices[0].message.content' > review.txt
       
           REVIEW_CONTENT=$(cat review.txt | tr '\n' ' ' | sed 's/"/\\"/g')
