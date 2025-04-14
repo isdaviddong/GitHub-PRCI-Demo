@@ -1,48 +1,48 @@
-name: PR CI - ASP.NET Core WebApp # 定義工作流程的名稱，方便識別
+name: PR CI - ASP.NET Core WebApp
 
 on:
-  pull_request: # 當有 Pull Request 時觸發此工作流程
+  pull_request:
     branches:
-      - main # 僅在 main 分支的 Pull Request 觸發
+      - main
 
 jobs:
-  build-and-test: # 定義一個名為 build-and-test 的工作
-    name: Build and Test # 工作的顯示名稱
-    runs-on: ubuntu-latest # 指定執行此工作的作業系統環境
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code # 檢出程式碼到執行環境
-        uses: actions/checkout@v3 # 使用 GitHub 提供的 checkout action
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Setup .NET SDK # 設定 .NET SDK 環境
-        uses: actions/setup-dotnet@v4 # 使用 GitHub 提供的 setup-dotnet action
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'  # 指定使用的 .NET SDK 版本，根據專案需求調整
+          dotnet-version: '8.0.x'  # 根據你使用的 .NET 版本調整
 
-      - name: Restore dependencies # 還原專案的相依性
-        run: dotnet restore # 執行 dotnet restore 指令
+      - name: Restore dependencies
+        run: dotnet restore
 
-      - name: Build # 建置專案
-        run: dotnet build --no-restore --configuration Release # 執行建置，使用 Release 組態，並跳過還原相依性
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
         
-      - name: Get PR Diff # 取得 Pull Request 的程式碼差異
-        id: diff # 設定此步驟的 ID，供後續步驟參考
+      - name: Get PR Diff
+        id: diff
         run: |
-          echo "Getting diff for PR #${{ github.event.pull_request.number }}" 
-          git fetch origin main 
-          git diff origin/main > diff.txt  
+          echo "Getting diff for PR #${{ github.event.pull_request.number }}"
+          git fetch origin main
+          git diff origin/main > diff.txt
       
-      - name: Call OpenAI for Review # 呼叫 OpenAI API 進行程式碼審查
-        id: openai_review # 設定此步驟的 ID，供後續步驟參考
+      - name: Call OpenAI for Review
+        id: openai_review
         run: |
-          echo "Calling OpenAI API to analyze code diff..."  
+          echo "Calling OpenAI API to analyze code diff..."
       
-          DIFF_CONTENT=$(cat diff.txt | head -c 6000 | jq -Rs .) # 讀取 diff.txt 的內容，並限制字元數
+          DIFF_CONTENT=$(cat diff.txt | head -c 6000 | jq -Rs .)
       
-          REQUEST_DATA=$(jq -n \ # 構建發送給 OpenAI API 的請求資料
-            --arg model "gpt-4o" \
-            --arg system_msg "你是一位資深程式碼審查員，專長在於找出技術債、重構建議與 clean code 和 SOLID 原則。" \
-            --arg user_msg "以下是 pull request 的程式碼差異，請指出是否有技術債、壞味道、維護風險、安全問題，並給出重構建議：\n\n$(cat diff.txt | head -c 6000)" \
+          REQUEST_DATA=$(jq -n \
+            --arg model "gpt-4" \
+            --arg system_msg "你是一位資深程式碼審查員，專長在於找出技術債、重構建議與乾淨程式碼原則。" \
+            --arg user_msg "以下是 pull request 的程式碼差異，請指出是否有技術債、壞味道、維護風險，並給出重構建議：\n\n$(cat diff.txt | head -c 6000)" \
             '{
               model: $model,
               temperature: 0.7,
@@ -52,35 +52,36 @@ jobs:
               ]
             }')
       
-          echo "🟡 Sending this request to OpenAI:" # 顯示即將發送的請求資料
-          echo "$REQUEST_DATA" | jq . # 格式化顯示請求資料
+          echo "🟡 Sending this request to OpenAI:"
+          echo "$REQUEST_DATA" | jq .
       
-          RESPONSE=$(curl https://api.openai.com/v1/chat/completions \ # 呼叫 OpenAI API 並取得回應
+          RESPONSE=$(curl https://api.openai.com/v1/chat/completions \
             -s \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
             -d "$REQUEST_DATA")
       
-          echo "🟢 OpenAI 回應內容：" # 顯示 OpenAI 的回應內容
-          echo "$RESPONSE" | jq . # 格式化顯示回應資料
+          echo "🟢 OpenAI 回應內容："
+          echo "$RESPONSE" | jq .
       
-          echo "$RESPONSE" | jq -r '.choices[0].message.content' > review.txt # 將回應內容儲存到 review.txt
+          echo "$RESPONSE" | jq -r '.choices[0].message.content' > review.txt
 
-          REVIEW_CONTENT=$(cat review.txt | perl -pe 's/\\n/\n/g') # 讀取 review.txt 並處理換行符號
-          echo "review<<EOF" >> $GITHUB_OUTPUT # 將審查意見輸出到 GitHub Actions 的輸出變數
+          REVIEW_CONTENT=$(cat review.txt | perl -pe 's/\\n/\n/g')
+          echo "review<<EOF" >> $GITHUB_OUTPUT
           echo "$REVIEW_CONTENT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Comment on PR # 在 Pull Request 上發表評論
-        uses: peter-evans/create-or-update-comment@v3 # 使用 GitHub 提供的 create-or-update-comment action
+      - name: Comment on PR
+        uses: peter-evans/create-or-update-comment@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }} # 使用 GitHub Token 進行身份驗證
-          issue-number: ${{ github.event.pull_request.number }} # 指定評論的 Pull Request 編號
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
           body: |
             🤖 **AI 程式碼審查意見**
-            以下是 OpenAI GPT-4o 對此 PR 的分析與建議：
+            
+            以下是 OpenAI GPT-4 對此 PR 的分析與建議：
 
-            ${{ steps.openai_review.outputs.review }}  
+            ${{ steps.openai_review.outputs.review }}
 
-      - name: Run tests # 執行單元測試
-        run: dotnet test --no-build --configuration Release --logger "trx" # 執行測試，使用 Release 組態，並產生測試報告
+      - name: Run tests
+        run: dotnet test --no-build --configuration Release --logger "trx"
