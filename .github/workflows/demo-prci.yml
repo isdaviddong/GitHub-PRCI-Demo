@@ -65,9 +65,11 @@ jobs:
           echo "$RESPONSE" | jq .
       
           echo "$RESPONSE" | jq -r '.choices[0].message.content' > review.txt
-          REVIEW_CONTENT=$(cat review.txt | sed 's/"/\\"/g' | perl -pe 's/\\n/\n/g')
-          echo "review=$REVIEW_CONTENT" >> $GITHUB_OUTPUT
 
+          REVIEW_CONTENT=$(cat review.txt | perl -pe 's/\\n/\n/g')
+          echo "review<<EOF" >> $GITHUB_OUTPUT
+          echo "$REVIEW_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment on PR
         uses: peter-evans/create-or-update-comment@v3
