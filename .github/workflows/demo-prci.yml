@@ -31,7 +31,7 @@ jobs:
           echo "Getting diff for PR #${{ github.event.pull_request.number }}"
           git fetch origin main
           git diff origin/main > diff.txt
-
+      
       - name: Call OpenAI for Review
         id: openai_review
         run: |
@@ -39,32 +39,35 @@ jobs:
       
           DIFF_CONTENT=$(cat diff.txt | head -c 6000 | jq -Rs .)
       
-          REQUEST_DATA=$(printf '{
-            "model": "gpt-4",
-            "messages": [
-              {
-                "role": "system",
-                "content": "你是一位資深程式碼審查員，專長在於找出技術債、重構建議與乾淨程式碼原則。"
-              },
-              {
-                "role": "user",
-                "content": "以下是 pull request 的程式碼差異，請指出是否有技術債、壞味道、維護風險，並給出重構建議：\n\n%s"
-              }
-            ],
-            "temperature": 0.7
-          }' "$DIFF_CONTENT")
+          REQUEST_DATA=$(jq -n \
+            --arg model "gpt-4" \
+            --arg system_msg "你是一位資深程式碼審查員，專長在於找出技術債、重構建議與乾淨程式碼原則。" \
+            --arg user_msg "以下是 pull request 的程式碼差異，請指出是否有技術債、壞味道、維護風險，並給出重構建議：\n\n$(cat diff.txt | head -c 6000)" \
+            '{
+              model: $model,
+              temperature: 0.7,
+              messages: [
+                { role: "system", content: $system_msg },
+                { role: "user", content: $user_msg }
+              ]
+            }')
+      
+          echo "🟡 Sending this request to OpenAI:"
+          echo "$REQUEST_DATA" | jq .
       
           RESPONSE=$(curl https://api.openai.com/v1/chat/completions \
             -s \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
             -d "$REQUEST_DATA")
-
-          echo "$REQUEST_DATA"
-          echo "$RESPONSE" | jq -r '.choices[0].message.content' > review.txt
       
+          echo "🟢 OpenAI 回應內容："
+          echo "$RESPONSE" | jq .
+      
+          echo "$RESPONSE" | jq -r '.choices[0].message.content' > review.txt
           REVIEW_CONTENT=$(cat review.txt | tr '\n' ' ' | sed 's/"/\\"/g')
           echo "review=$REVIEW_CONTENT" >> $GITHUB_OUTPUT
+
 
       - name: Comment on PR
         uses: peter-evans/create-or-update-comment@v3
