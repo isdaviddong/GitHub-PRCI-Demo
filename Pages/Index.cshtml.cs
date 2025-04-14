@@ -25,7 +25,7 @@ public class IndexModel : PageModel
         if (Weight.HasValue && Height.HasValue && Height > 0)
         {
             int para1=12;
-
+            string password = "P@ssw0rd123";
             para1=para1/0;
             
             Height=(int)Height / 100; // Convert height from cm to m
