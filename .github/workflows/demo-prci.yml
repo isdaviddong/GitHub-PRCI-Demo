@@ -32,6 +32,39 @@ jobs:
           git fetch origin main
           git diff origin/main > diff.txt
 
+      - name: Call OpenAI for Review
+        id: openai_review
+        run: |
+          echo "Calling OpenAI API to analyze code diff..."
+      
+          DIFF_CONTENT=$(cat diff.txt | head -c 6000 | jq -Rs .)
+      
+          REQUEST_DATA=$(printf '{
+            "model": "gpt-4",
+            "messages": [
+              {
+                "role": "system",
+                "content": "你是一位資深程式碼審查員，專長在於找出技術債、重構建議與乾淨程式碼原則。"
+              },
+              {
+                "role": "user",
+                "content": "以下是 pull request 的程式碼差異，請指出是否有技術債、壞味道、維護風險，並給出重構建議：\n\n%s"
+              }
+            ],
+            "temperature": 0.7
+          }' "$DIFF_CONTENT")
+      
+          RESPONSE=$(curl https://api.openai.com/v1/chat/completions \
+            -s \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d "$REQUEST_DATA")
+      
+          echo "$RESPONSE" | jq -r '.choices[0].message.content' > review.txt
+      
+          echo "review<<EOF" >> $GITHUB_OUTPUT
+          cat review.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment on PR
         uses: peter-evans/create-or-update-comment@v3
