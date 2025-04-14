@@ -24,47 +24,8 @@ jobs:
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
-      - name: Get PR Diff
-        id: diff
-        run: |
-          echo "Getting diff for PR #${{ github.event.pull_request.number }}"
-          git fetch origin main
-          git diff origin/main > diff.txt
+        
 
-      - name: Call OpenAI for Review
-        id: openai_review
-        run: |
-          echo "Calling OpenAI API to analyze code diff..."
-          RESPONSE=$(curl https://api.openai.com/v1/chat/completions \
-            -s \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-            -d @- <<EOF
-          {
-            "model": "gpt-4",
-            "messages": [
-              { "role": "system", "content": "你是一位資深程式碼審查員，專長在於找出技術債、重構建議與乾淨程式碼原則。" },
-              { "role": "user", "content": "以下是 pull request 的程式碼差異，請指出是否有技術債、壞味道、維護風險，並給出重構建議：\n\n$(cat diff.txt | head -c 6000)" }
-            ],
-            "temperature": 0.7
-          }
-EOF
-          )
-          echo "REVIEW_COMMENT<<EOF" >> $GITHUB_ENV
-          echo "$RESPONSE" | jq -r '.choices[0].message.content' >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Comment on PR
-        uses: peter-evans/create-or-update-comment@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            🤖 **AI 程式碼審查意見**
-            
-            以下是 OpenAI GPT-4 對此 PR 的分析與建議：
-
-            ${{ env.REVIEW_COMMENT }}
 
       - name: Run tests
         run: dotnet test --no-build --configuration Release --logger "trx"
