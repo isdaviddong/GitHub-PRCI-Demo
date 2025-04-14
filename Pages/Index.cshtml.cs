@@ -12,11 +12,20 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public void OnGet()
-    {
-        //
-        int a=10;
+    [BindProperty]
+    public float? Weight { get; set; }
 
-        a=a/0;
+    [BindProperty]
+    public float? Height { get; set; }
+
+    public float? BMI { get; private set; }
+
+    public void OnPost()
+    {
+        if (Weight.HasValue && Height.HasValue && Height > 0)
+        {
+            Height=Height / 100; // Convert height from cm to m
+            BMI = Weight / (Height * Height);
+        }
     }
 }
