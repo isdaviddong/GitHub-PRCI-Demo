@@ -29,3 +29,6 @@
    - 執行測試 (包含測試報告產出)
 
 這個 CI 流程可以確保每個 Pull Request 的程式碼品質，避免不符合規範的程式碼被合併到主分支，並透過 AI 提供額外的程式碼審查建議，提升程式碼的可維護性與品質。
+
+demo video:
+https://www.youtube.com/watch?v=osQXFayDN9Y
